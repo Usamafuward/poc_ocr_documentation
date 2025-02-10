@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Request, HTTPException
 from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from ocr_back.process_pdf import PDFProcessor
-from ocr_back.chat_with_pdf import RAGChatManager
+from ocr_back.chat_with_pdf import ChatManager
 import os
 from dotenv import load_dotenv
 import httpx
@@ -25,7 +25,7 @@ app.add_middleware(
 
 # Initialize the PDF processor and chatbots
 pdf_processor = PDFProcessor(os.getenv("GOOGLE_API_KEY"))
-chat_bot = RAGChatManager(os.getenv("GOOGLE_API_KEY"))
+chat_bot = ChatManager(os.getenv("GOOGLE_API_KEY"))
 
 # Configuration for real-time API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
