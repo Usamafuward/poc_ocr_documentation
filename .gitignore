@@ -1,0 +1,5 @@
+/venv
+.env
+.sesskey
+icons.py
+__pycache__/

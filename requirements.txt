@@ -1,0 +1,65 @@
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+PyPDF2
+pymupdf
+openai
+python-multipart
+python-fasthtml
+Pillow
+numpy
+sounddevice
+pyttsx3
+SpeechRecognition
+asyncio
+concurrent-log-handler
+shad4fast
+pyaudio
+requests
+pydantic-settings
+websocket-client
+pysocks
+starlette
+twilio
+websockets
+pydantic
+httpx
+aiortc
+Flask
+flask-cors
+flask_socketio
+sentence-transformers 
+scikit-learn
+
+# fastapi
+# uvicorn
+# python-dotenv
+# google-generativeai
+# PyPDF2
+# pymupdf
+# openai
+# python-multipart
+# python-fasthtml
+# Pillow
+# numpy
+# sounddevice
+# pyttsx3
+# SpeechRecognition
+# asyncio
+# concurrent-log-handler
+# shad4fast
+# pyaudio
+# requests
+# pydantic-settings
+# websocket-client
+# pysocks
+# starlette
+# twilio
+# websockets
+# pydantic
+# httpx
+# aiortc
+# Flask
+# flask-cors
+# flask_socketio
