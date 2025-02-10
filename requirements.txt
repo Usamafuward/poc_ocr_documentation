@@ -29,8 +29,8 @@ aiortc
 Flask
 flask-cors
 flask_socketio
-sentence-transformers 
-scikit-learn
+# sentence-transformers 
+# scikit-learn
 
 # fastapi
 # uvicorn
