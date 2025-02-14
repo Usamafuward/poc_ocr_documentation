@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  ocr-app:
+    image: ocr-app
+    build: .
+    ports:
+      - "8000:8000"
+    container_name: ocr-app-container
+    restart: unless-stopped
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}

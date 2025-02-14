@@ -9,64 +9,17 @@ python-multipart
 python-fasthtml
 Pillow
 numpy
-sounddevice
-pyttsx3
-SpeechRecognition
 asyncio
 concurrent-log-handler
 shad4fast
-pyaudio
 requests
 pydantic-settings
 websocket-client
 pysocks
 starlette
-twilio
 websockets
 pydantic
 httpx
 aiortc
-Flask
-flask-cors
-flask_socketio
-<<<<<<< HEAD
-sentence-transformers 
-scikit-learn
 faiss-cpu
 tenacity
-=======
-# sentence-transformers 
-# scikit-learn
->>>>>>> 255d4385425e36c22f22e612badc9be979437852
-
-# fastapi
-# uvicorn
-# python-dotenv
-# google-generativeai
-# PyPDF2
-# pymupdf
-# openai
-# python-multipart
-# python-fasthtml
-# Pillow
-# numpy
-# sounddevice
-# pyttsx3
-# SpeechRecognition
-# asyncio
-# concurrent-log-handler
-# shad4fast
-# pyaudio
-# requests
-# pydantic-settings
-# websocket-client
-# pysocks
-# starlette
-# twilio
-# websockets
-# pydantic
-# httpx
-# aiortc
-# Flask
-# flask-cors
-# flask_socketio
