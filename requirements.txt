@@ -29,10 +29,15 @@ aiortc
 Flask
 flask-cors
 flask_socketio
+<<<<<<< HEAD
 sentence-transformers 
 scikit-learn
 faiss-cpu
 tenacity
+=======
+# sentence-transformers 
+# scikit-learn
+>>>>>>> 255d4385425e36c22f22e612badc9be979437852
 
 # fastapi
 # uvicorn
