@@ -25,7 +25,7 @@ app.add_middleware(
 
 # Initialize the PDF processor and chatbots
 pdf_processor = PDFProcessor(os.getenv("GOOGLE_API_KEY"))
-chat_bot = ChatManager(os.getenv("GOOGLE_API_KEY"))
+chat_bot = ChatManager(os.getenv("OPENAI_API_KEY"))
 
 # Configuration for real-time API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -66,7 +66,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         current_pdf_pages = len(pdf_reader.pages)
         
         extracted_text = pdf_processor.extract_text_from_pdf(uploaded_pdf)
-        chat_bot.set_document_content(extracted_text)
+        # chat_bot.set_document_content(extracted_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF processing error: {str(e)}")
     
@@ -79,6 +79,7 @@ async def process_pdf():
         raise HTTPException(status_code=400, detail="No PDF uploaded")
     
     extracted_info = await pdf_processor.process_pdf(uploaded_pdf)
+    await chat_bot.set_document_content(extracted_text)
     
     return JSONResponse(extracted_info)
 

@@ -111,7 +111,7 @@ def get_upload_card():
                         id="process-btn-pdf"
                     ),
                     Button(
-                        "Clear",
+                        "Clear Document",
                         variant="outline",
                         cls="w-full bg-red-400/10 hover:bg-red-400/20 border-red-400/30 hover:border-red-400 hover:text-white text-white",
                         hx_post="/clear-pdf",
@@ -183,7 +183,7 @@ def get_rtc_chat_interface():
                         type="text",
                         placeholder="Ask a question...",
                         id="chat-input",
-                        cls="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-white placeholder-gray-400",
+                        cls="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-1000 text-black placeholder-gray-400",
                         textarea=True,
                         onkeydown="if (event.key === 'Enter') { event.preventDefault(); sendChatMessage(); }"
                     ),
@@ -300,7 +300,7 @@ async def upload_pdf(req: Request):
             
         # Send to FastAPI backend
         files = {'file': (pdf.filename, await pdf.read(), 'application/pdf')}
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post('http://localhost:8001/upload-pdf', files=files)
             
         if response.status_code != 200:
@@ -326,7 +326,7 @@ async def process_pdf(req: Request):
     """Process PDF to extract information"""
     try:
         print("Processing PDF")
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post('http://localhost:8001/process-pdf')
             print(response)
             
@@ -350,7 +350,7 @@ async def process_pdf(req: Request):
 async def clear_pdf(req: Request):
     """Clear uploaded PDF"""
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post('http://localhost:8001/clear-pdf')
             
         if response.status_code != 200:
@@ -385,7 +385,7 @@ async def chat(req: Request):
         if not question:
             return {"error": "No question provided"}, 400
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post('http://localhost:8001/chat', json={"question": question})
             
         if response.status_code != 200:
@@ -407,7 +407,7 @@ def run_server():
         log_level="info",
         workers=1,
         reload=True,
-        timeout_keep_alive=65,
+        timeout_keep_alive=None,
         loop="auto"
     )
     server = uvicorn.Server(config)

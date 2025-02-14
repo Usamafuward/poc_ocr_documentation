@@ -31,6 +31,8 @@ flask-cors
 flask_socketio
 sentence-transformers 
 scikit-learn
+faiss-cpu
+tenacity
 
 # fastapi
 # uvicorn
