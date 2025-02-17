@@ -15,7 +15,7 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Expose the port the app runs on
-EXPOSE 8000
+EXPOSE 8005
 
 # Command to run the application
-CMD ["uvicorn", "ocr_front.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "ocr_front.main:app", "--host", "0.0.0.0", "--port", "8005"]
