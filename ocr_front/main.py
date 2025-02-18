@@ -39,6 +39,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 uploaded_pdf = None
 extracted_text = ""
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 @app.on_event("startup")
 async def startup_event():
@@ -301,7 +302,7 @@ async def upload_pdf(req: Request):
         # Send to FastAPI backend
         files = {'file': (pdf.filename, await pdf.read(), 'application/pdf')}
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/upload-pdf', files=files)
+            response = await client.post(f'{BACKEND_URL}/upload-pdf', files=files)
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Upload failed'))
@@ -327,7 +328,7 @@ async def process_pdf(req: Request):
     try:
         print("Processing PDF")
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/process-pdf')
+            response = await client.post(f'{BACKEND_URL}/process-pdf')
             print(response)
             
         if response.status_code != 200:
@@ -351,7 +352,7 @@ async def clear_pdf(req: Request):
     """Clear uploaded PDF"""
     try:
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/clear-pdf')
+            response = await client.post(f'{BACKEND_URL}/clear-pdf')
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Clear failed'))
@@ -386,7 +387,7 @@ async def chat(req: Request):
             return {"error": "No question provided"}, 400
         
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/chat', json={"question": question})
+            response = await client.post(f'{BACKEND_URL}/chat', json={"question": question})
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Chat failed'))
