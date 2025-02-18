@@ -1,4 +1,4 @@
-const baseUrl = "http://127.0.0.1:8001"; // FastAPI backend URL
+const baseUrl = "http://backend:8001"; // FastAPI backend URL
 let isWebRTCActive = false;
 let peerConnection;
 let dataChannel;
