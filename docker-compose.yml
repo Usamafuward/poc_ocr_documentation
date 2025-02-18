@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: ./ocr_front/Dockerfile
     ports:
-      - "8005:8001"
+      - "8005:8000"
     volumes:
       - uploads:/app/uploads
     environment:
