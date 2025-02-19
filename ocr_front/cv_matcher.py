@@ -67,9 +67,10 @@ def get_cv_jd_section():
                         Div(
                             Lucide("loader", cls="w-4 h-4 mr-2 spinner"),
                             "Comparing...",
-                            cls="compare-btn-loading hidden items-center justify-center"
+                            cls="flex compare-btn-loading hidden items-center justify-center"
                         ),
                         id="compare-btn",
+                        type="button",
                         variant="outline",
                         cls="pulse w-full bg-blue-400/10 hover:bg-blue-400/20 border-blue-400/30 hover:border-blue-400 text-white hover:text-white",
                         hx_post="/compare-cvs",
@@ -79,6 +80,7 @@ def get_cv_jd_section():
                     Button(
                         "Clear All",
                         variant="outline",
+                        type="button",
                         cls="w-full bg-red-400/10 hover:bg-red-400/20 border-red-400/30 hover:border-red-400 text-white hover:text-white",
                         hx_post="/clear-matching",
                         hx_target="#matching-results"

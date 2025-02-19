@@ -407,12 +407,12 @@ document
     showLoadingButton("upload-jd-btn", "Analyzing JD...");
     hideUploadContainer("jd-upload-container");
 
-    const alertDiv = createProcessingAlert("Analyzing Job Description...");
+    const alertDiv = createProcessingAlert("Analyzing Job Description... Please wait.");
     document.body.appendChild(alertDiv);
 
     setTimeout(() => {
       alertDiv.remove();
-    }, 3000);
+    }, 4000);
   });
 
 document
@@ -421,34 +421,22 @@ document
     showLoadingButton("upload-cvs-btn", "Processing CVs...");
     hideUploadContainer("cv-upload-container");
 
-    const alertDiv = createProcessingAlert("Processing CVs...");
+    const alertDiv = createProcessingAlert("Processing CVs... Please wait");
     document.body.appendChild(alertDiv);
 
     setTimeout(() => {
       alertDiv.remove();
-    }, 3000);
+    }, 5000);
   });
 
-// Helper function to create processing alerts
-function createProcessingAlert(message) {
-  const alertDiv = document.createElement("div");
-  alertDiv.className =
-    "fixed top-4 right-4 p-4 rounded-lg bg-blue-400/10 border border-blue-400/30 text-white animate-fade-in";
-  alertDiv.innerHTML = `
-    <div class="flex items-center">
-      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      ${message}
-    </div>
-  `;
-  return alertDiv;
-}
+document.getElementById("compare-btn")?.addEventListener("click", function () {
+  // Show the processing alert immediately when button is clicked
+  const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
+  alertDiv.classList.add("processing-alert"); // Add class for identification
+  document.body.appendChild(alertDiv);
 
-// Document comparison function
-async function compareDocuments() {
-  const compareBtn = document.getElementById("compare-btn");
+  // Update button state
+  const compareBtn = this;
   const compareText = compareBtn.querySelector(".compare-btn-text");
   const compareLoading = compareBtn.querySelector(".compare-btn-loading");
 
@@ -457,39 +445,121 @@ async function compareDocuments() {
   compareText.classList.add("hidden");
   compareLoading.classList.remove("hidden");
 
-  const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
-  document.body.appendChild(alertDiv);
+  // Fetch comparison results
+  fetch(`${baseUrl}/compare-cvs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Comparison failed");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      // Show success alert
+      const successAlert = createAlert(
+        "Success",
+        "CV comparison completed successfully",
+        "success"
+      );
+      document.body.appendChild(successAlert);
 
-  try {
-    const response = await fetch(`${baseUrl}/compare-cvs`, {
-      method: "POST",
+      // Remove success alert after 3 seconds
+      setTimeout(() => {
+        successAlert.style.opacity = "0";
+        successAlert.style.transform = "translateY(-10px)";
+        setTimeout(() => successAlert.remove(), 300);
+      }, 3000);
+
+      // Update results
+      if (data.matches) {
+        const resultsDiv = document.getElementById("matching-results");
+        if (resultsDiv) {
+          resultsDiv.innerHTML = ""; // Clear previous results
+          resultsDiv.appendChild(get_comparison_results(data.matches));
+        }
+      }
+    })
+    .finally(() => {
+      // Reset button state
+      compareBtn.disabled = false;
+      compareText.classList.remove("hidden");
+      compareLoading.classList.add("hidden");
+
+      // Remove processing alert with animation
+      const processingAlerts = document.querySelectorAll(".processing-alert");
+      processingAlerts.forEach((alert) => {
+        alert.style.opacity = "0";
+        alert.style.transform = "translateY(-10px)";
+        setTimeout(() => alert.remove(), 300);
+      });
     });
+});
 
-    if (!response.ok) {
-      throw new Error("Comparison failed");
-    }
 
-    const results = await response.json();
-    document.getElementById("matching-results").innerHTML = results.html;
-  } catch (error) {
-    console.error("Error comparing documents:", error);
-    const errorAlert = createErrorAlert(
-      "Failed to compare documents. Please try again."
-    );
-    document.body.appendChild(errorAlert);
-    setTimeout(() => errorAlert.remove(), 5000);
-  } finally {
-    // Reset button state
-    compareBtn.disabled = false;
-    compareText.classList.remove("hidden");
-    compareLoading.classList.add("hidden");
-
-    // Remove processing alert with animation
-    alertDiv.style.opacity = "0";
-    alertDiv.style.transform = "translateY(-10px)";
-    setTimeout(() => alertDiv.remove(), 300);
-  }
+function createProcessingAlert(message) {
+  const alertDiv = document.createElement("div");
+  alertDiv.className =
+    "fixed top-4 right-4 p-4 rounded-lg bg-blue-400/10 border border-blue-400/30 text-white transition-all duration-300 z-50";
+  alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            ${message}
+        </div>
+    `;
+  return alertDiv;
 }
+
+// Document comparison function
+// async function compareDocuments() {
+//   const compareBtn = document.getElementById("compare-btn");
+//   const compareText = compareBtn.querySelector(".compare-btn-text");
+//   const compareLoading = compareBtn.querySelector(".compare-btn-loading");
+
+//   // Disable button and show loading state
+//   compareBtn.disabled = true;
+//   compareText.classList.add("hidden");
+//   compareLoading.classList.remove("hidden");
+
+//   const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
+//   document.body.appendChild(alertDiv);
+
+//   try {
+//     const response = await fetch(`${baseUrl}/compare-cvs`, {
+//       method: "POST",
+//     });
+
+//     if (!response.ok) {
+//       throw new Error("Comparison failed");
+//     }
+
+//     const results = await response.json();
+//     document.getElementById("matching-results").innerHTML = results.html;
+//   } catch (error) {
+//     console.error("Error comparing documents:", error);
+//     const errorAlert = createErrorAlert(
+//       "Failed to compare documents. Please try again."
+//     );
+//     document.body.appendChild(errorAlert);
+//     setTimeout(() => errorAlert.remove(), 5000);
+//   } finally {
+//     // Reset button state
+//     compareBtn.disabled = false;
+//     compareText.classList.remove("hidden");
+//     compareLoading.classList.add("hidden");
+
+//     // Remove processing alert with animation
+//     alertDiv.style.opacity = "0";
+//     alertDiv.style.transform = "translateY(-10px)";
+//     setTimeout(() => alertDiv.remove(), 300);
+//   }
+// }
 
 // Clear matching function
 async function clearMatching() {
@@ -525,5 +595,32 @@ function createErrorAlert(message) {
       ${message}
     </div>
   `;
+  return alertDiv;
+}
+
+function createAlert(title, message, type) {
+  const alertDiv = document.createElement("div");
+  const bgColor = type === "success" ? "bg-green-400/10" : "bg-red-400/10";
+  const borderColor =
+    type === "success" ? "border-green-400/30" : "border-red-400/30";
+  const textColor = type === "success" ? "text-green-400" : "text-red-400";
+
+  alertDiv.className = `fixed top-4 right-4 p-4 rounded-lg ${bgColor} border ${borderColor} transition-all duration-300 z-50`;
+  alertDiv.innerHTML = `
+        <div class="flex items-center">
+            <svg class="w-5 h-5 ${textColor} mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                ${
+                  type === "success"
+                    ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>'
+                    : '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>'
+                }
+            </svg>
+            <div>
+                <div class="font-semibold ${textColor}">${title}</div>
+                <div class="text-white text-sm">${message}</div>
+            </div>
+        </div>
+    `;
+
   return alertDiv;
 }
