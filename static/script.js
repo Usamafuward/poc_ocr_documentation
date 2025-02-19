@@ -1,4 +1,6 @@
-const baseUrl = "http://127.0.0.1:8001"; // FastAPI backend URL
+document.documentElement.setAttribute("class", "dark");
+
+const baseUrl = window.BACKEND_URL;
 let isWebRTCActive = false;
 let peerConnection;
 let dataChannel;
@@ -100,7 +102,6 @@ function createDataChannel() {
       handleFunctionCall(msg);
     }
   });
-
 }
 
 async function handleFunctionCall(msg) {
@@ -242,7 +243,8 @@ function stopWebRTC() {
 }
 
 function finalizeTranscription(text, role) {
-  const transcriptElementId = role === "user" ? "live-transcript-user" : "live-transcript-assistant";
+  const transcriptElementId =
+    role === "user" ? "live-transcript-user" : "live-transcript-assistant";
   const transcriptElement = document.getElementById(transcriptElementId);
 
   if (transcriptElement) {
@@ -355,4 +357,173 @@ function copyToClipboard(text, tooltipId) {
       tooltip.classList.remove("copied");
     }, 1000);
   });
+}
+
+function showLoadingButton(buttonId, loadingText) {
+  const button = document.getElementById(buttonId);
+  if (button) {
+    button.disabled = true;
+    button.classList.add("loading");
+    button.innerHTML = `
+      <div class="flex items-center justify-center">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        ${loadingText}
+      </div>
+    `;
+  }
+}
+
+function resetButton(buttonId, originalText) {
+  const button = document.getElementById(buttonId);
+  if (button) {
+    button.disabled = false;
+    button.classList.remove("loading");
+    button.innerHTML = originalText;
+  }
+}
+
+// Container visibility functions
+function hideUploadContainer(containerId) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.style.display = "none";
+  }
+}
+
+function showUploadContainer(containerId) {
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.style.display = "block";
+  }
+}
+
+// File upload event listeners
+document
+  .getElementById("file-upload-jd")
+  ?.addEventListener("change", function () {
+    showLoadingButton("upload-jd-btn", "Analyzing JD...");
+    hideUploadContainer("jd-upload-container");
+
+    const alertDiv = createProcessingAlert("Analyzing Job Description...");
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 3000);
+  });
+
+document
+  .getElementById("file-upload-cvs")
+  ?.addEventListener("change", function () {
+    showLoadingButton("upload-cvs-btn", "Processing CVs...");
+    hideUploadContainer("cv-upload-container");
+
+    const alertDiv = createProcessingAlert("Processing CVs...");
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+      alertDiv.remove();
+    }, 3000);
+  });
+
+// Helper function to create processing alerts
+function createProcessingAlert(message) {
+  const alertDiv = document.createElement("div");
+  alertDiv.className =
+    "fixed top-4 right-4 p-4 rounded-lg bg-blue-400/10 border border-blue-400/30 text-white animate-fade-in";
+  alertDiv.innerHTML = `
+    <div class="flex items-center">
+      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      ${message}
+    </div>
+  `;
+  return alertDiv;
+}
+
+// Document comparison function
+async function compareDocuments() {
+  const compareBtn = document.getElementById("compare-btn");
+  const compareText = compareBtn.querySelector(".compare-btn-text");
+  const compareLoading = compareBtn.querySelector(".compare-btn-loading");
+
+  // Disable button and show loading state
+  compareBtn.disabled = true;
+  compareText.classList.add("hidden");
+  compareLoading.classList.remove("hidden");
+
+  const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
+  document.body.appendChild(alertDiv);
+
+  try {
+    const response = await fetch(`${baseUrl}/compare-cvs`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error("Comparison failed");
+    }
+
+    const results = await response.json();
+    document.getElementById("matching-results").innerHTML = results.html;
+  } catch (error) {
+    console.error("Error comparing documents:", error);
+    const errorAlert = createErrorAlert(
+      "Failed to compare documents. Please try again."
+    );
+    document.body.appendChild(errorAlert);
+    setTimeout(() => errorAlert.remove(), 5000);
+  } finally {
+    // Reset button state
+    compareBtn.disabled = false;
+    compareText.classList.remove("hidden");
+    compareLoading.classList.add("hidden");
+
+    // Remove processing alert with animation
+    alertDiv.style.opacity = "0";
+    alertDiv.style.transform = "translateY(-10px)";
+    setTimeout(() => alertDiv.remove(), 300);
+  }
+}
+
+// Clear matching function
+async function clearMatching() {
+  try {
+    const response = await fetch(`${baseUrl}/clear-matching`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error("Clear failed");
+    }
+
+    showUploadContainer("jd-upload-container");
+    showUploadContainer("cv-upload-container");
+
+    document.getElementById("file-upload-jd").value = "";
+    document.getElementById("file-upload-cvs").value = "";
+    document.getElementById("matching-results").innerHTML = "";
+  } catch (error) {
+    console.error("Error clearing documents:", error);
+  }
+}
+
+function createErrorAlert(message) {
+  const alertDiv = document.createElement("div");
+  alertDiv.className =
+    "fixed top-4 right-4 p-4 rounded-lg bg-red-400/10 border border-red-400/30 text-white animate-fade-in";
+  alertDiv.innerHTML = `
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-red-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+      </svg>
+      ${message}
+    </div>
+  `;
+  return alertDiv;
 }

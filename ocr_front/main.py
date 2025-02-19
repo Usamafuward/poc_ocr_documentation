@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 import httpx
 import uvicorn
+from ocr_front.cv_chat import get_upload_card, get_information_display, get_rtc_chat_interface
+from ocr_front.cv_matcher import get_cv_jd_section, get_comparison_results
 
 load_dotenv()
 if not os.path.exists("static"):
@@ -39,6 +41,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 uploaded_pdf = None
 extracted_text = ""
+BACKEND_URL = os.getenv("BACKEND_URL")
 
 @app.on_event("startup")
 async def startup_event():
@@ -60,206 +63,69 @@ async def global_exception_handler(request, exc):
         variant="destructive",
         cls="mt-4 backdrop-blur-sm glass"
     )
-
-def get_upload_card():
-    return Card(
-        Div(
-            Form(
-                Div(
-                    Div(
-                        P("Upload your PDF document and click 'Process' to extract details.",
-                          cls="text-sm text-gray-400 text-center"),
-                        cls="space-y-1.5 p-6 items-center justify-center"
-                    ),
-                    Div(
-                        Input(
-                            type="file",
-                            name="pdf_document",
-                            accept="application/pdf",
-                            cls="hidden",
-                            id="file-upload-pdf",
-                            hx_post="/upload-pdf",
-                            hx_encoding="multipart/form-data",
-                            hx_target="#information-display",
-                            hx_trigger="change"
-                        ),
-                        Label(
-                            Lucide("file-text", cls="w-10 h-10 mb-2 text-blue-400 float"),
-                            "Click to upload PDF document",
-                            htmlFor="file-upload-pdf",
-                            cls="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-blue-400 rounded-lg cursor-pointer hover:bg-blue-400/5 backdrop-blur-sm transition-all duration-200 glass hover-lift text-gray-300"
-                        ),
-                    ),
-                    id="upload-container-pdf",
-                ),
-                Div(
-                    Button(
-                        Div(
-                            "Process",
-                            cls="processing-btn process-btn-state items-center justify-center"
-                        ),
-                        Div(
-                            Lucide("loader", cls="w-4 h-4 mr-2 spinner"),
-                            "Processing... please wait",
-                            cls="loading-btn process-btn-state items-center justify-center"
-                        ),
-                        variant="outline",
-                        cls="pulse w-full bg-blue-400/10 hover:bg-blue-400/20 border-white/40 hover:border-blue-400 hover:text-white text-white",
-                        hx_post="/process-pdf",
-                        hx_target="#information-display",
-                        hx_indicator="#process-btn-pdf",
-                        id="process-btn-pdf"
-                    ),
-                    Button(
-                        "Clear Document",
-                        variant="outline",
-                        cls="w-full bg-red-400/10 hover:bg-red-400/20 border-red-400/30 hover:border-red-400 hover:text-white text-white",
-                        hx_post="/clear-pdf",
-                        hx_target="#information-display"
-                    ),
-                    cls="gap-6 pt-6 grid w-full grid-cols-2 items-center justify-center"
-                ),
+    
+def get_tabs():
+    """Generate the Tabs component for Document Extractor and CV Matcher"""
+    return Tabs(
+        TabsList(
+            TabsTrigger(
+                Div(Lucide("file-text", cls="w-4 h-4 mr-2"), "Document Extractor", cls="flex items-center"),
+                value="document-extractor",
+                cls="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-gray-400 hover:text-white"
             ),
-            cls="p-6 pt-0 bg-black"
+            TabsTrigger(
+                Div(Lucide("users", cls="w-4 h-4 mr-2"), "CV Matcher", cls="flex items-center"),
+                value="cv-matcher",
+                cls="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-gray-400 hover:text-white"
+            ),
+            cls="grid w-full grid-cols-2 bg-zinc-900 rounded-lg gap-1 border border-zinc-800"
         ),
-        cls="max-w-7xl mx-auto rounded-lg border-2 backdrop-blur-sm text-white shadow-lg border-zinc-800",
-        standard=True
-    )
-
-def get_information_display(extracted_info=None):
-    return Div(
-        Div(
-            H3("PDF Document Information", 
-               cls="text-center text-2xl font-semibold leading-none tracking-tight text-white"),
-            P("Extracted information from the uploaded PDF document.",
-              cls="text-center text-gray-400 text-sm mb-6"),
+        TabsContent(
             Div(
-                *[
-                    Div(
-                        Div(
-                            P(key + ":", cls="font-semibold text-blue-400" if not key == "Error" else "text-red-400"),
-                            *[
-                                P(f"{i+1}. {item}" if isinstance(value, list) else item or "Not found", 
-                                  cls="ml-2 text-gray-300" + (" mb-2" if isinstance(value, list) else ""))
-                                for i, item in enumerate(value if isinstance(value, list) else [value])
-                            ],
-                            cls="flex-grow"
-                        ),
-                        Button(
-                            Div(
-                                Lucide("copy", cls="w-4 h-4"),
-                                Div("Copy", cls="copy-tooltip text-gray-300", id=f"tooltip-{key.lower().replace(' ', '-')}"),
-                                cls="relative copy-btn hover:text-white text-white"
-                            ),
-                            onclick=f"copyToClipboard('{' '.join(value) if isinstance(value, list) else value or ''}', 'tooltip-{key.lower().replace(' ', '-')}')",
-                            variant="ghost",
-                            cls="p-2 hover:bg-blue-400/20 text-gray-300"
-                        ),
-                        cls="flex items-center justify-between mb-4 p-4 border border-blue-400/30 rounded-lg bg-gradient-to-br from-blue-400/10 to-blue-400/5 hover:from-blue-400/20 hover:to-blue-400/10 transition-all duration-300 hover:border-blue-400/50 hover-lift" if not key == "Error" else "flex items-center justify-between mb-4 p-4 border border-red-400/30 rounded-lg bg-gradient-to-br from-red-400/10 to-red-400/5 hover:from-red-400/20 hover:to-red-400/10 transition-all duration-300 hover:border-red-400/50 hover-lift"
-                    )
-                    for key, value in (extracted_info or {}).items()
-                ] if extracted_info else [
-                    P("Upload and process a PDF document to see extracted information.",
-                      cls="text-gray-400")
-                ],
-                cls="space-y-4"
-            ),
-            cls="w-full border-2 rounded-lg p-6 border-zinc-800"
-        ),
-        id="information-display",
-        cls="flex flex-col gap-6 mx-auto max-w-7xl w-full"
-    )
-
-def get_rtc_chat_interface():
-    return Div(
-        Div(
-            H3("Chat with Document", 
-               cls="text-center text-2xl font-semibold leading-none tracking-tight text-white"),
-            P("Ask questions using text or voice about the uploaded document.",
-              cls="text-center text-gray-400 text-sm mb-6"),
-            Div(
+                get_upload_card(),
                 Div(
-                    Input(
-                        type="text",
-                        placeholder="Ask a question...",
-                        id="chat-input",
-                        cls="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-1000 text-black placeholder-gray-400",
-                        textarea=True,
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); sendChatMessage(); }"
-                    ),
-                    Button(
-                        Lucide("mic", cls="w-4 h-4"),
-                        Div(cls="recording-indicator"),
-                        variant="outline",
-                        id="toggleWebRTCButton",
-                        cls="voice-chat-btn bg-blue-400/10 hover:bg-blue-400/20 border-white/40 hover:border-blue-400 relative hover:text-white text-white",
-                        onClick="toggleVoiceChat()"
-                    ),
-                    cls="flex gap-4 items-center"
+                    get_information_display(),
+                    get_rtc_chat_interface(),
+                    cls="flex flex-cols-2 gap-6"
                 ),
-                Div(
-                    Button(
-                        Div(
-                            "Send",
-                            cls="thinking-btn chat-btn-state items-center justify-center"
-                        ),
-                        Div(
-                            Lucide("loader", cls="w-4 h-4 mr-2 spinner"),
-                            "Thinking...",
-                            cls="loading-btn chat-btn-state items-center justify-center"
-                        ),
-                        id="chat-send",
-                        variant="outline",
-                        cls="bg-blue-400/10 hover:bg-blue-400/20 border-white/40 hover:border-blue-400 hover:text-white text-white",
-                        onClick="sendChatMessage()"
-                    ),
-                    Button(
-                        "Clear Chat",
-                        variant="outline",
-                        id="clear-chat",
-                        cls="bg-red-400/10 hover:bg-red-400/20 border-red-400/30 hover:border-red-400 w-full hover:text-white text-white",
-                        onclick="clearChat()"
-                    ),
-                    cls="grid grid-cols-2 gap-4"
-                ),
-                cls="space-y-4"
+                cls="space-y-6"
             ),
-            Div(
-                id="audio-output",
-                cls="hidden transition-all duration-300 mt-4 flex items-center justify-center"
-            ),
-            Div(
-                id="chat-messages",
-                cls="mt-4 space-y-4"
-            ),
-            cls="w-full border-2 rounded-lg p-6 backdrop-blur-sm border-zinc-800"
+            value="document-extractor",
+            cls="space-y-7 transition-all duration-500 ease-in-out"
         ),
-        cls="flex flex-col gap-6 mx-auto max-w-7xl w-full"
+        TabsContent(
+            Div(
+                get_cv_jd_section(),
+                Div(id="matching-results", cls="mt-6"),
+                cls="space-y-6"
+            ),
+            value="cv-matcher",
+            cls="space-y-7 transition-all duration-500 ease-in-out"
+        ),
+        default_value="document-extractor",
+        cls="w-full max-w-7xl mx-auto space-y-7"
     )
 
 @rt('/')
 def get():
-    return Title("PDF Document Extractor"), Body(
-        Section(
-            H1("PDF Document Extractor",
-               cls="text-4xl font-bold tracking-tight text-center mb-6 text-white"),
-            cls="container max-w-full mx-auto my-8"
-        ),
-        Section(
-            get_upload_card(),
-            Div(
-                get_information_display(),
-                get_rtc_chat_interface(),
-                cls="flex flex-cols-2 gap-6"
+    return (
+        Title("PDF Document Extractor & CV Matcher"),
+        Script(f"window.BACKEND_URL = '{os.getenv('BACKEND_URL')}';"),  # Inject environment variable
+        Body(
+            Section(
+                H1("PDF Document Extractor & CV Matcher",
+                   cls="text-4xl font-bold tracking-tight text-center mb-6 text-white"),
+                cls="container max-w-full mx-auto my-8"
             ),
-            cls="container max-w-7xl mx-auto px-4 space-y-6 mb-6"
-        ),
-        cls="min-h-screen bg-black text-white"
+            Section(
+                get_tabs(),
+                cls="container max-w-7xl mx-auto px-4 space-y-6 mb-6"
+            ),
+            cls="min-h-screen bg-black text-white"
+        )
     )
 
-# Rest of the routes remain the same, just add the existing upload_pdf, process_pdf, clear_pdf, and chat route handlers here
 
-# Update the upload_pdf route
 @rt('/upload-pdf')
 async def upload_pdf(req: Request):
     """Handle PDF upload"""
@@ -298,10 +164,10 @@ async def upload_pdf(req: Request):
                 variant="destructive"
             ), 400
             
-        # Send to FastAPI backend
+        # Send to FastAPI localhost
         files = {'file': (pdf.filename, await pdf.read(), 'application/pdf')}
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/upload-pdf', files=files)
+            response = await client.post(f'{BACKEND_URL}/upload-pdf', files=files)
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Upload failed'))
@@ -327,7 +193,7 @@ async def process_pdf(req: Request):
     try:
         print("Processing PDF")
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/process-pdf')
+            response = await client.post(f'{BACKEND_URL}/process-pdf')
             print(response)
             
         if response.status_code != 200:
@@ -351,7 +217,7 @@ async def clear_pdf(req: Request):
     """Clear uploaded PDF"""
     try:
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/clear-pdf')
+            response = await client.post(f'{BACKEND_URL}/clear-pdf')
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Clear failed'))
@@ -386,7 +252,7 @@ async def chat(req: Request):
             return {"error": "No question provided"}, 400
         
         async with httpx.AsyncClient(timeout=None) as client:
-            response = await client.post('http://backend:8001/chat', json={"question": question})
+            response = await client.post(f'{BACKEND_URL}/chat', json={"question": question})
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Chat failed'))
@@ -396,6 +262,237 @@ async def chat(req: Request):
     except Exception as e:
         logger.error(f"Chat error: {str(e)}", exc_info=True)
         return {"error": str(e)}, 500
+    
+@rt('/upload-jd')
+async def upload_jd(req: Request):
+    if req.method != "POST":
+        return Alert(
+            AlertTitle("Error"),
+            AlertDescription("Method not allowed"),
+            variant="destructive"
+        ), 405
+    
+    try:
+        form = await req.form()
+        pdf_field_name = "job_description"
+        
+        if pdf_field_name not in form:
+            return Alert(
+                AlertTitle("Error"),
+                AlertDescription("No file field found in form"),
+                variant="destructive"
+            ), 400
+            
+        jd_file = form[pdf_field_name]
+            
+        if not isinstance(jd_file, UploadFile):
+            return Alert(
+                AlertTitle("Error"),
+                AlertDescription("Invalid file upload"),
+                variant="destructive"
+            ), 400
+            
+        files = {'file': (jd_file.filename, await jd_file.read(), 'application/pdf')}
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(f'{BACKEND_URL}/upload-jd', files=files)
+            
+        if response.status_code != 200:
+            raise Exception(response.json().get('detail', 'Upload failed'))
+            
+        return Div(
+            Alert(
+                AlertTitle("Success", cls="text-white"),
+                AlertDescription("Job description analyzed successfully", cls="text-white"),
+                variant="default",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
+                id="success-alert"
+            ),
+            Script("""
+                resetButton('upload-jd-btn', 'Upload Job Description');
+                document.getElementById('jd-upload-container').style.display = 'none';
+                setTimeout(() => {
+                    const alert = document.getElementById('success-alert');
+                    if (alert) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        alert.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 3000);
+            """)
+        )
+            
+    except Exception as e:
+        logger.error(f"Upload error for JD: {str(e)}", exc_info=True)
+        return Div(
+            Alert(
+                AlertTitle("Upload Failed"),
+                AlertDescription(str(e)),
+                variant="destructive"
+            ),
+            Script("resetButton('upload-jd-btn', 'Upload Job Description');")
+        ), 500
+
+@rt('/upload-cvs')
+async def upload_cvs(req: Request):
+    if req.method != "POST":
+        return Alert(
+            AlertTitle("Error"),
+            AlertDescription("Method not allowed"),
+            variant="destructive"
+        ), 405
+    
+    try:
+        form = await req.form()
+        cv_files = form.getlist("cv_files")
+        
+        if not cv_files:
+            return Alert(
+                AlertTitle("Error"),
+                AlertDescription("No CV files provided"),
+                variant="destructive"
+            ), 400
+            
+        files = []
+        for cv_file in cv_files:
+            if not isinstance(cv_file, UploadFile):
+                continue
+            files.append(('files', (cv_file.filename, await cv_file.read(), 'application/pdf')))
+            
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(f'{BACKEND_URL}/upload-cvs', files=files)
+            
+        if response.status_code != 200:
+            raise Exception(response.json().get('detail', 'Upload failed'))
+            
+        result = response.json()
+        return Div(
+            Alert(
+                AlertTitle("Success", cls="text-white"),
+                AlertDescription(f"Successfully uploaded {result['cv_count']} CVs", cls="text-white"),
+                variant="default",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
+                id="success-alert"
+            ),
+            Script("""
+                resetButton('upload-cvs-btn', 'Upload CVs');
+                document.getElementById('cv-upload-container').style.display = 'none';
+                setTimeout(() => {
+                    const alert = document.getElementById('success-alert');
+                    if (alert) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        alert.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 3000);
+            """)
+        )
+            
+    except Exception as e:
+        logger.error(f"Upload error for CVs: {str(e)}", exc_info=True)
+        return Div(
+            Alert(
+                AlertTitle("Upload Failed"),
+                AlertDescription(str(e)),
+                variant="destructive"
+            ),
+            Script("resetButton('upload-cvs-btn', 'Upload CVs');")
+        ), 500
+
+@rt('/compare-cvs')
+async def compare_cvs(req: Request):
+    try:
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(f'{BACKEND_URL}/compare-cvs')
+            
+        if response.status_code != 200:
+            raise Exception(response.json().get('detail', 'Comparison failed'))
+            
+        data = response.json()
+        return Div(
+            get_comparison_results(data["matches"]),
+            Script("""
+                const compareBtn = document.getElementById('compare-btn');
+                const compareText = compareBtn.querySelector('.compare-btn-text');
+                const compareLoading = compareBtn.querySelector('.compare-btn-loading');
+                
+                // Reset button state
+                compareBtn.disabled = false;
+                compareText.classList.remove('hidden');
+                compareLoading.classList.add('hidden');
+                
+                // Remove any existing processing alerts with animation
+                const alerts = document.querySelectorAll('.processing-alert');
+                alerts.forEach(alert => {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => alert.remove(), 300);
+                });
+            """)
+        )
+    
+    except Exception as e:
+        logger.error(f"Comparison error: {str(e)}", exc_info=True)
+        return Div(
+            Alert(
+                AlertTitle("Comparison Failed"),
+                AlertDescription(str(e)),
+                variant="destructive",
+                cls="mt-4 backdrop-blur-sm"
+            ),
+            Script("""
+                const compareBtn = document.getElementById('compare-btn');
+                const compareText = compareBtn.querySelector('.compare-btn-text');
+                const compareLoading = compareBtn.querySelector('.compare-btn-loading');
+                
+                compareBtn.disabled = false;
+                compareText.classList.remove('hidden');
+                compareLoading.classList.add('hidden');
+            """)
+        ), 500
+
+@rt('/clear-matching')
+async def clear_matching(req: Request):
+    try:
+        async with httpx.AsyncClient(timeout=None) as client:
+            response = await client.post(f'{BACKEND_URL}/clear-matching')
+            
+        if response.status_code != 200:
+            raise Exception(response.json().get('detail', 'Clear failed'))
+        
+        return Div(
+            Alert(
+                AlertTitle("Success"),
+                AlertDescription("All documents cleared successfully"),
+                variant="default",
+                cls="bg-green-400/10 border-green-400/30",
+                id="success-alert"
+            ),
+            Script("""
+                document.getElementById('jd-upload-container').style.display = 'block';
+                document.getElementById('cv-upload-container').style.display = 'block';
+                document.getElementById('file-upload-jd').value = '';
+                document.getElementById('file-upload-cvs').value = '';
+                setTimeout(() => {
+                    const alert = document.getElementById('success-alert');
+                    if (alert) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        alert.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 3000);
+            """)
+        )
+    
+    except Exception as e:
+        logger.error(f"Clear error: {str(e)}", exc_info=True)
+        return Alert(
+            AlertTitle("Clear Failed"),
+            AlertDescription(str(e)),
+            variant="destructive"
+        ), 500
 
 def run_server():
     """Run the server with proper configuration"""

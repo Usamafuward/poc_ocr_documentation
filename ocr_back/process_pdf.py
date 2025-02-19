@@ -265,7 +265,7 @@ class PDFProcessor:
         """Initialize the PDF processor with Google API key"""
         self.api_key = api_key
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         self.executor = ThreadPoolExecutor(max_workers=4)
 
     def extract_text_from_pdf(self, pdf_content: bytes) -> str:
@@ -343,7 +343,7 @@ class PDFProcessor:
             "Summary": "A novel about the American Dream and the Roaring Twenties."
         """
 
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash')
 
         try:
             response = model.generate_content(

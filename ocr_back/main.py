@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from ocr_back.process_pdf import PDFProcessor
 from ocr_back.chat_with_pdf import ChatManager
+from ocr_back.cv_matching import CVJDMatcher
+from typing import List
 import os
 from dotenv import load_dotenv
 import httpx
@@ -26,6 +28,8 @@ app.add_middleware(
 # Initialize the PDF processor and chatbots
 pdf_processor = PDFProcessor(os.getenv("GOOGLE_API_KEY"))
 chat_bot = ChatManager(os.getenv("OPENAI_API_KEY"))
+# cv_matcher = CVJDMatcher(os.getenv("OPENAI_API_KEY"))
+cv_matcher = CVJDMatcher(os.getenv("GOOGLE_API_KEY"))
 
 # Configuration for real-time API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -40,6 +44,7 @@ DEFAULT_INSTRUCTIONS = """You are an expert PDF assistant. Follow these rules:
 
 # Global storage for PDF content
 uploaded_pdf = None
+upload_jd = None
 extracted_text = ""
 current_pdf_content = None
 current_pdf_pages = 0
@@ -196,6 +201,37 @@ async def clear_pdf():
 async def clear_chat():
     chat_bot.clear_history()
     return JSONResponse(content={"message": "Chat history cleared"})
+
+@app.post("/upload-jd")
+async def upload_jd(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    
+    upload_jd = await file.read()
+    result = await cv_matcher.process_jd(upload_jd)
+    return JSONResponse(content=result)
+
+@app.post("/upload-cvs")
+async def upload_cvs(files: List[UploadFile] = File(...)):
+    files_content = []
+    for file in files:
+        if file.content_type != "application/pdf":
+            raise HTTPException(status_code=400, detail=f"File {file.filename} must be a PDF")
+        content = await file.read()
+        files_content.append((content, file.filename))
+    
+    result = await cv_matcher.process_cvs(files_content)
+    return JSONResponse(content=result)
+
+@app.post("/compare-cvs")
+async def compare_cvs():
+    result = await cv_matcher.compare_documents()
+    return JSONResponse(content=result)
+
+@app.post("/clear-matching")
+async def clear_matching():
+    cv_matcher.clear_all()
+    return JSONResponse(content={"message": "All documents cleared"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)
