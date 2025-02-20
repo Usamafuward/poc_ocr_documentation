@@ -96,105 +96,120 @@ def get_cv_jd_section():
     )
     
 def get_candidate_profile(i, match):
-    """Generate a unified candidate profile display using FastHTML"""
+    """Generate a unified candidate profile display using FastHTML with collapsible content"""
     return Div(
         # Main container with gradient background
         Div(
-            # Header section with name and match percentage
+            # Header section with name, match percentage, and collapse toggle
             Div(
-                H3(f"#{i+1}: {match['cv_name']}", 
-                   cls="text-2xl font-bold text-white"),
                 Div(
-                    Span(
-                        f"{match['match_percentage']}%",
-                        cls=f"text-3xl font-bold {get_percentage_color(match['match_percentage'])}"
+                    Div(
+                        H3(f"#{i+1}: {match['cv_name']}", 
+                           cls="text-2xl font-bold text-white"),
+                        Lucide("chevron-down", 
+                               cls="w-6 h-6 text-gray-400 transition-transform duration-200 transform hover:text-white cursor-pointer"),
+                        cls="flex items-center gap-2"
                     ),
-                    P("Match Rate", cls="text-sm text-gray-400"),
-                    cls="flex flex-col items-end"
+                    Div(
+                        Span(
+                            f"{match['match_percentage']}%",
+                            cls=f"text-3xl font-bold {get_percentage_color(match['match_percentage'])}"
+                        ),
+                        P("Match Rate", cls="text-sm text-gray-400"),
+                        cls="flex flex-col items-end"
+                    ),
+                    cls="flex justify-between items-center w-full"
                 ),
-                cls="flex justify-between items-center mb-6 py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
+                cls="flex justify-between items-center py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800 cursor-pointer hover:bg-zinc-900/70 transition-colors duration-200",
+                onclick="toggleContent(this)"
             ),
             
-            # Requirements Match Section
+            # Collapsible content container
             Div(
-                # Experience Match
+                # Requirements Match Section
                 Div(
-                    P("Experience Match", cls="text-lg font-semibold text-white mb-1"),
+                    # Experience Match
                     Div(
-                        P("Matches Requirements" if match['experience_match'] else "Does Not Match",
-                            cls=f"{'text-green-400' if match['experience_match'] else 'text-red-400'}"),
-                        Lucide("circle-check" if match['experience_match'] else "circle-x",
-                                cls=f"w-5 h-5 {'text-green-400' if match['experience_match'] else 'text-red-400'} ml-2"),
-                        cls="flex items-center"
+                        P("Experience Match", cls="text-lg font-semibold text-white mb-1"),
+                        Div(
+                            P("Matches Requirements" if match['experience_match'] else "Does Not Match",
+                                cls=f"{'text-green-400' if match['experience_match'] else 'text-red-400'}"),
+                            Lucide("circle-check" if match['experience_match'] else "circle-x",
+                                    cls=f"w-5 h-5 {'text-green-400' if match['experience_match'] else 'text-red-400'} ml-2"),
+                            cls="flex items-center"
+                        ),
+                        cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
                     ),
+                    # Education Match
+                    Div(
+                        P("Education Match", cls="text-lg font-semibold text-white mb-1"),
+                        Div(
+                            P("Matches Requirements" if match['education_match'] else "Does Not Match",
+                                cls=f"{'text-green-400' if match['education_match'] else 'text-red-400'}"),
+                            Lucide("circle-check" if match['education_match'] else "circle-x",
+                                    cls=f"w-5 h-5 {'text-green-400' if match['education_match'] else 'text-red-400'} ml-2"),
+                            cls="flex items-center"
+                        ),
+                        cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
+                    ),
+                    cls="grid grid-cols-2 gap-4 mb-6"
+                ),
+                
+                # Skills Section
+                Div(
+                    H4("Skills Analysis", cls="text-lg font-semibold text-white mb-4"),
+                    # Matching Skills
+                    Div(
+                        Div(
+                            Lucide("check", cls="w-5 h-5 text-green-400"),
+                            H5("Matching Skills", cls="text-base font-medium text-white ml-2"),
+                            cls="flex items-center mb-2"
+                        ),
+                        Div(
+                            *[
+                                Span(
+                                    skill,
+                                    cls="px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm border border-green-400/30 inline-block m-1"
+                                ) for skill in match['matching_skills']
+                            ],
+                            cls="flex flex-wrap"
+                        ),
+                        cls="mb-4"
+                    ),
+                    # Missing Skills
+                    Div(
+                        Div(
+                            Lucide("x", cls="w-5 h-5 text-red-400"),
+                            H5("Missing Skills", cls="text-base font-medium text-white ml-2"),
+                            cls="flex items-center mb-2"
+                        ),
+                        Div(
+                            *[
+                                Span(
+                                    skill,
+                                    cls="px-3 py-1 bg-red-400/20 text-red-400 rounded-full text-sm border border-red-400/30 inline-block m-1"
+                                ) for skill in match['missing_skills']
+                            ],
+                            cls="flex flex-wrap"
+                        )
+                    ),
+                    cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800 mb-6"
+                ),
+                
+                # Analysis Section
+                Div(
+                    Div(
+                        H4("Full Analysis", cls="text-lg font-semibold text-white mr-2"),
+                        Lucide("file-text", cls="w-5 h-5 text-purple-400"),
+                        cls="flex items-center mb-4"
+                    ),
+                    P(match['detailed_analysis'],
+                      cls="text-white text-sm"),
                     cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
                 ),
-                # Education Match
-                Div(
-                    P("Education Match", cls="text-lg font-semibold text-white mb-1"),
-                    Div(
-                        P("Matches Requirements" if match['education_match'] else "Does Not Match",
-                            cls=f"{'text-green-400' if match['education_match'] else 'text-red-400'}"),
-                        Lucide("circle-check" if match['education_match'] else "circle-x",
-                                cls=f"w-5 h-5 {'text-green-400' if match['education_match'] else 'text-red-400'} ml-2"),
-                        cls="flex items-center"
-                    ),
-                    cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
-                ),
-                cls="grid grid-cols-2 gap-4 mb-6"
-            ),
-            
-            # Skills Section
-            Div(
-                H4("Skills Analysis", cls="text-lg font-semibold text-white mb-4"),
-                # Matching Skills
-                Div(
-                    Div(
-                        Lucide("check", cls="w-5 h-5 text-green-400"),
-                        H5("Matching Skills", cls="text-base font-medium text-white ml-2"),
-                        cls="flex items-center mb-2"
-                    ),
-                    Div(
-                        *[
-                            Span(
-                                skill,
-                                cls="px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm border border-green-400/30 inline-block m-1"
-                            ) for skill in match['matching_skills']
-                        ],
-                        cls="flex flex-wrap"
-                    ),
-                    cls="mb-4"
-                ),
-                # Missing Skills
-                Div(
-                    Div(
-                        Lucide("x", cls="w-5 h-5 text-red-400"),
-                        H5("Missing Skills", cls="text-base font-medium text-white ml-2"),
-                        cls="flex items-center mb-2"
-                    ),
-                    Div(
-                        *[
-                            Span(
-                                skill,
-                                cls="px-3 py-1 bg-red-400/20 text-red-400 rounded-full text-sm border border-red-400/30 inline-block m-1"
-                            ) for skill in match['missing_skills']
-                        ],
-                        cls="flex flex-wrap"
-                    )
-                ),
-                cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800 mb-6"
-            ),
-            
-            # Analysis Section
-            Div(
-                Div(
-                    H4("Full Analysis", cls="text-lg font-semibold text-white mr-2"),
-                    Lucide("file-text", cls="w-5 h-5 text-purple-400"),
-                    cls="flex items-center mb-4"
-                ),
-                P(match['detailed_analysis'],
-                  cls="text-white text-sm"),
-                cls="py-4 px-6 bg-zinc-900/50 rounded-lg border border-zinc-800"
+                
+                cls="block mt-6 transition-all duration-300 overflow-hidden",
+                id=f"content-{i}"
             ),
             
             cls="p-6 rounded-lg border-2 border-zinc-800 transition-all duration-300"

@@ -185,48 +185,148 @@ function toggleVoiceChat() {
   const button = document.getElementById("toggleWebRTCButton");
 
   if (isWebRTCActive) {
+    // Stop WebRTC and show alert
     stopWebRTC();
     button.classList.remove("recording");
     document.getElementById("audio-output").innerHTML = "";
+
+    // Create and show the "Voice Chat Off" alert
+    const offAlert = createAlert(
+      "Voice Chat Disabled",
+      "Voice chat has been turned off",
+      "success"
+    );
+    offAlert.classList.add("voice-chat-alert");
+    document.body.appendChild(offAlert);
+
+    // Remove alert after animation
+    setTimeout(() => {
+      offAlert.style.opacity = "0";
+      offAlert.style.transform = "translateY(-10px)";
+      setTimeout(() => offAlert.remove(), 300);
+    }, 2000);
   } else {
-    startWebRTC();
-    button.classList.add("recording");
+    // Show processing alert while WebRTC starts
+    const processingAlert = createProcessingAlert("Initializing voice chat...");
+    processingAlert.classList.add("voice-chat-processing");
+    document.body.appendChild(processingAlert);
+
+    setTimeout(() => {
+      processingAlert.style.opacity = "0";
+      processingAlert.style.transform = "translateY(-10px)";
+      setTimeout(() => processingAlert.remove(), 2000);
+    }, 2000);
+
+    try {
+      // Start WebRTC
+      startWebRTC();
+      button.classList.add("recording");
+
+      // Create and show the "Voice Chat On" alert
+      const onAlert = createAlert(
+        "Voice Chat Enabled",
+        "Voice chat is now active. Start speaking to interact.",
+        "success"
+      );
+      onAlert.classList.add("voice-chat-alert");
+
+      // Remove processing alert and show success alert
+      setTimeout(() => {
+        const processingAlerts = document.querySelectorAll(
+          ".voice-chat-processing"
+        );
+        processingAlerts.forEach((alert) => {
+          alert.style.opacity = "0";
+          alert.style.transform = "translateY(-10px)";
+          setTimeout(() => alert.remove(), 300);
+        });
+
+        document.body.appendChild(onAlert);
+
+        // Remove success alert after delay
+        setTimeout(() => {
+          onAlert.style.opacity = "0";
+          onAlert.style.transform = "translateY(-10px)";
+          setTimeout(() => onAlert.remove(), 300);
+        }, 2000);
+      }, 1000);
+    } catch (error) {
+      // Handle errors
+      const errorAlert = createAlert(
+        "Error",
+        "Failed to initialize voice chat. Please check your microphone permissions.",
+        "error"
+      );
+      document.body.appendChild(errorAlert);
+
+      // Remove processing and error alerts
+      const processingAlerts = document.querySelectorAll(
+        ".voice-chat-processing"
+      );
+      processingAlerts.forEach((alert) => alert.remove());
+
+      setTimeout(() => {
+        errorAlert.style.opacity = "0";
+        errorAlert.style.transform = "translateY(-10px)";
+        setTimeout(() => errorAlert.remove(), 300);
+      }, 2000);
+
+      // Reset button state
+      button.classList.remove("recording");
+    }
   }
 }
 
 function startWebRTC() {
   if (isWebRTCActive) return;
 
-  peerConnection = new RTCPeerConnection();
-  peerConnection.ontrack = handleTrack;
-  createDataChannel();
+  try {
+    peerConnection = new RTCPeerConnection();
+    peerConnection.ontrack = handleTrack;
+    createDataChannel();
 
-  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-    stream
-      .getTracks()
-      .forEach((track) =>
-        peerConnection.addTransceiver(track, { direction: "sendrecv" })
-      );
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        stream
+          .getTracks()
+          .forEach((track) =>
+            peerConnection.addTransceiver(track, { direction: "sendrecv" })
+          );
 
-    peerConnection.createOffer().then((offer) => {
-      peerConnection.setLocalDescription(offer);
+        peerConnection
+          .createOffer()
+          .then((offer) => {
+            peerConnection.setLocalDescription(offer);
 
-      fetch(`${baseUrl}/rtc-connect`, {
-        method: "POST",
-        body: offer.sdp,
-        headers: { "Content-Type": "application/sdp" },
-      })
-        .then((r) => r.text())
-        .then((answer) => {
-          peerConnection.setRemoteDescription({
-            sdp: answer,
-            type: "answer",
+            fetch(`${baseUrl}/rtc-connect`, {
+              method: "POST",
+              body: offer.sdp,
+              headers: { "Content-Type": "application/sdp" },
+            })
+              .then((r) => r.text())
+              .then((answer) => {
+                peerConnection.setRemoteDescription({
+                  sdp: answer,
+                  type: "answer",
+                });
+                isWebRTCActive = true;
+              })
+              .catch((error) => {
+                throw new Error("Failed to connect to server");
+              });
+          })
+          .catch((error) => {
+            throw new Error("Failed to create offer");
           });
-        });
-    });
-  });
-
-  isWebRTCActive = true;
+      })
+      .catch((error) => {
+        throw new Error("Microphone access denied");
+      });
+  } catch (error) {
+    isWebRTCActive = false;
+    throw error;
+  }
 }
 
 function stopWebRTC() {
@@ -412,7 +512,7 @@ document
 
     setTimeout(() => {
       alertDiv.remove();
-    }, 4000);
+    }, 1500);
   });
 
 document
@@ -426,26 +526,22 @@ document
 
     setTimeout(() => {
       alertDiv.remove();
-    }, 5000);
+    }, 1500);
   });
 
 document.getElementById("compare-btn")?.addEventListener("click", function () {
-  // Show the processing alert immediately when button is clicked
   const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
   alertDiv.classList.add("processing-alert"); // Add class for identification
   document.body.appendChild(alertDiv);
 
-  // Update button state
   const compareBtn = this;
   const compareText = compareBtn.querySelector(".compare-btn-text");
   const compareLoading = compareBtn.querySelector(".compare-btn-loading");
 
-  // Disable button and show loading state
   compareBtn.disabled = true;
   compareText.classList.add("hidden");
   compareLoading.classList.remove("hidden");
 
-  // Fetch comparison results
   fetch(`${baseUrl}/compare-cvs`, {
     method: "POST",
     headers: {
@@ -467,29 +563,17 @@ document.getElementById("compare-btn")?.addEventListener("click", function () {
       );
       document.body.appendChild(successAlert);
 
-      // Remove success alert after 3 seconds
       setTimeout(() => {
         successAlert.style.opacity = "0";
         successAlert.style.transform = "translateY(-10px)";
         setTimeout(() => successAlert.remove(), 300);
-      }, 3000);
-
-      // Update results
-      if (data.matches) {
-        const resultsDiv = document.getElementById("matching-results");
-        if (resultsDiv) {
-          resultsDiv.innerHTML = ""; // Clear previous results
-          resultsDiv.appendChild(get_comparison_results(data.matches));
-        }
-      }
+      }, 2000);
     })
     .finally(() => {
-      // Reset button state
       compareBtn.disabled = false;
       compareText.classList.remove("hidden");
       compareLoading.classList.add("hidden");
 
-      // Remove processing alert with animation
       const processingAlerts = document.querySelectorAll(".processing-alert");
       processingAlerts.forEach((alert) => {
         alert.style.opacity = "0";
@@ -497,6 +581,93 @@ document.getElementById("compare-btn")?.addEventListener("click", function () {
         setTimeout(() => alert.remove(), 300);
       });
     });
+});
+// Process button event listener
+document.addEventListener('DOMContentLoaded', function() {
+  const processBtn = document.getElementById("process-btn-pdf");
+  
+  if (processBtn) {
+    processBtn.addEventListener("click", function(e) {
+      e.preventDefault(); // Prevent default form submission if within a form
+      
+      // Create and show processing alert
+      const alertDiv = createProcessingAlert("Processing CV... Please wait");
+      alertDiv.classList.add("processing-alert");
+      document.body.appendChild(alertDiv);
+
+      // Disable button and show loading state
+      const processText = this.querySelector(".process-btn-text");
+      const processLoading = this.querySelector(".process-btn-loading");
+      
+      if (processText && processLoading) {
+        this.disabled = true;
+        processText.classList.add("hidden");
+        processLoading.classList.remove("hidden");
+      }
+
+      // Make the API call
+      fetch(`${baseUrl}/process-pdf`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Processing failed");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // Show success alert
+          const successAlert = createAlert(
+            "Success",
+            "PDF processing completed successfully",
+            "success"
+          );
+          document.body.appendChild(successAlert);
+
+          // Remove success alert after delay
+          setTimeout(() => {
+            successAlert.style.opacity = "0";
+            successAlert.style.transform = "translateY(-10px)";
+            setTimeout(() => successAlert.remove(), 300);
+          }, 2000);
+        })
+        .catch((error) => {
+          // Show error alert
+          const errorAlert = createAlert(
+            "Error",
+            error.message || "Failed to process PDF",
+            "error"
+          );
+          document.body.appendChild(errorAlert);
+
+          // Remove error alert after delay
+          setTimeout(() => {
+            errorAlert.style.opacity = "0";
+            errorAlert.style.transform = "translateY(-10px)";
+            setTimeout(() => errorAlert.remove(), 300);
+          }, 2000);
+        })
+        .finally(() => {
+          // Re-enable button and restore original state
+          if (processText && processLoading) {
+            this.disabled = false;
+            processText.classList.remove("hidden");
+            processLoading.classList.add("hidden");
+          }
+
+          // Remove processing alert
+          const processingAlerts = document.querySelectorAll(".processing-alert");
+          processingAlerts.forEach((alert) => {
+            alert.style.opacity = "0";
+            alert.style.transform = "translateY(-10px)";
+            setTimeout(() => alert.remove(), 300);
+          });
+        });
+    });
+  }
 });
 
 
@@ -516,52 +687,6 @@ function createProcessingAlert(message) {
   return alertDiv;
 }
 
-// Document comparison function
-// async function compareDocuments() {
-//   const compareBtn = document.getElementById("compare-btn");
-//   const compareText = compareBtn.querySelector(".compare-btn-text");
-//   const compareLoading = compareBtn.querySelector(".compare-btn-loading");
-
-//   // Disable button and show loading state
-//   compareBtn.disabled = true;
-//   compareText.classList.add("hidden");
-//   compareLoading.classList.remove("hidden");
-
-//   const alertDiv = createProcessingAlert("Analyzing and comparing CVs...");
-//   document.body.appendChild(alertDiv);
-
-//   try {
-//     const response = await fetch(`${baseUrl}/compare-cvs`, {
-//       method: "POST",
-//     });
-
-//     if (!response.ok) {
-//       throw new Error("Comparison failed");
-//     }
-
-//     const results = await response.json();
-//     document.getElementById("matching-results").innerHTML = results.html;
-//   } catch (error) {
-//     console.error("Error comparing documents:", error);
-//     const errorAlert = createErrorAlert(
-//       "Failed to compare documents. Please try again."
-//     );
-//     document.body.appendChild(errorAlert);
-//     setTimeout(() => errorAlert.remove(), 5000);
-//   } finally {
-//     // Reset button state
-//     compareBtn.disabled = false;
-//     compareText.classList.remove("hidden");
-//     compareLoading.classList.add("hidden");
-
-//     // Remove processing alert with animation
-//     alertDiv.style.opacity = "0";
-//     alertDiv.style.transform = "translateY(-10px)";
-//     setTimeout(() => alertDiv.remove(), 300);
-//   }
-// }
-
-// Clear matching function
 async function clearMatching() {
   try {
     const response = await fetch(`${baseUrl}/clear-matching`, {
@@ -623,4 +748,19 @@ function createAlert(title, message, type) {
     `;
 
   return alertDiv;
+}
+
+function toggleContent(header) {
+  const content = header.nextElementSibling;
+  const chevron = header.querySelector(".lucide-chevron-up");
+
+  if (content.classList.contains("block")) {
+    content.classList.remove("block");
+    content.classList.add("hidden");
+    chevron.style.transform = "rotate(180deg)";
+  } else {
+    content.classList.remove("hidden");
+    content.classList.add("block");
+    chevron.style.transform = "rotate(0deg)";
+  }
 }

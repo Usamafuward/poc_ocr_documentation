@@ -69,7 +69,7 @@ def get_tabs():
     return Tabs(
         TabsList(
             TabsTrigger(
-                Div(Lucide("file-text", cls="w-4 h-4 mr-2"), "Document Extractor", cls="flex items-center"),
+                Div(Lucide("file-text", cls="w-4 h-4 mr-2"), "CV Extractor", cls="flex items-center"),
                 value="document-extractor",
                 cls="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-gray-400 hover:text-white"
             ),
@@ -109,11 +109,11 @@ def get_tabs():
 @rt('/')
 def get():
     return (
-        Title("PDF Document Extractor & CV Matcher"),
+        Title("PDF CV Extractor & Matcher"),
         Script(f"window.BACKEND_URL = '{os.getenv('BACKEND_URL')}';"),  # Inject environment variable
         Body(
             Section(
-                H1("PDF Document Extractor & CV Matcher",
+                H1("PDF CV Extractor & Matcher",
                    cls="text-4xl font-bold tracking-tight text-center mb-6 text-white"),
                 cls="container max-w-full mx-auto my-8"
             ),
@@ -366,6 +366,7 @@ async def upload_cvs(req: Request):
             raise Exception(response.json().get('detail', 'Upload failed'))
             
         result = response.json()
+        print(result)
         return Div(
             Alert(
                 AlertTitle("Success", cls="text-white"),

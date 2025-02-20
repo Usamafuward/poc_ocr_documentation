@@ -7,7 +7,7 @@ def get_upload_card():
             Form(
                 Div(
                     Div(
-                        P("Upload your PDF document and click 'Process' to extract details.",
+                        P("Upload your CV PDF file and click 'Process' to extract details.",
                           cls="text-sm text-gray-400 text-center"),
                         cls="space-y-1.5 p-6 items-center justify-center"
                     ),
@@ -25,7 +25,7 @@ def get_upload_card():
                         ),
                         Label(
                             Lucide("file-text", cls="w-10 h-10 mb-2 text-blue-400 float"),
-                            "Click to upload PDF document",
+                            "Click to upload CV (pdf)",
                             htmlFor="file-upload-pdf",
                             cls="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-blue-400 rounded-lg cursor-pointer hover:bg-blue-400/5 backdrop-blur-sm transition-all duration-200 glass hover-lift text-gray-300"
                         ),
@@ -44,6 +44,7 @@ def get_upload_card():
                             cls="loading-btn process-btn-state items-center justify-center"
                         ),
                         variant="outline",
+                        type="button",
                         cls="pulse w-full bg-blue-400/10 hover:bg-blue-400/20 border-white/40 hover:border-blue-400 hover:text-white text-white",
                         hx_post="/process-pdf",
                         hx_target="#information-display",
@@ -69,9 +70,9 @@ def get_upload_card():
 def get_information_display(extracted_info=None):
     return Div(
         Div(
-            H3("PDF Document Information", 
+            H3("CV Document Information", 
                cls="text-center text-2xl font-semibold leading-none tracking-tight text-white"),
-            P("Extracted information from the uploaded PDF document.",
+            P("Extracted information from the uploaded CV document.",
               cls="text-center text-gray-400 text-sm mb-6"),
             Div(
                 *[
@@ -99,7 +100,7 @@ def get_information_display(extracted_info=None):
                     )
                     for key, value in (extracted_info or {}).items()
                 ] if extracted_info else [
-                    P("Upload and process a PDF document to see extracted information.",
+                    P("Upload and process a CV to see extracted information.",
                       cls="text-gray-400")
                 ],
                 cls="space-y-4"
@@ -113,9 +114,9 @@ def get_information_display(extracted_info=None):
 def get_rtc_chat_interface():
     return Div(
         Div(
-            H3("Chat with Document", 
+            H3("Chat with CV", 
                cls="text-center text-2xl font-semibold leading-none tracking-tight text-white"),
-            P("Ask questions using text or voice about the uploaded document.",
+            P("Ask questions using text or voice about the uploaded CV.",
               cls="text-center text-gray-400 text-sm mb-6"),
             Div(
                 Div(

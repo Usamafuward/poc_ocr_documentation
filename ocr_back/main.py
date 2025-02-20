@@ -28,8 +28,10 @@ app.add_middleware(
 # Initialize the PDF processor and chatbots
 pdf_processor = PDFProcessor(os.getenv("GOOGLE_API_KEY"))
 chat_bot = ChatManager(os.getenv("OPENAI_API_KEY"))
-# cv_matcher = CVJDMatcher(os.getenv("OPENAI_API_KEY"))
-cv_matcher = CVJDMatcher(os.getenv("GOOGLE_API_KEY"))
+cv_matcher = CVJDMatcher(
+    gemini_api_key=os.getenv("GOOGLE_API_KEY"), 
+    openai_api_key=os.getenv("OPENAI_API_KEY")
+)
 
 # Configuration for real-time API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -44,7 +46,8 @@ DEFAULT_INSTRUCTIONS = """You are an expert PDF assistant. Follow these rules:
 
 # Global storage for PDF content
 uploaded_pdf = None
-upload_jd = None
+uploaded_jd_content = None
+uploaded_cvs_content = []
 extracted_text = ""
 current_pdf_content = None
 current_pdf_pages = 0
@@ -204,32 +207,90 @@ async def clear_chat():
 
 @app.post("/upload-jd")
 async def upload_jd(file: UploadFile = File(...)):
+    global uploaded_jd_content
+    
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="File must be a PDF")
     
-    upload_jd = await file.read()
-    result = await cv_matcher.process_jd(upload_jd)
-    return JSONResponse(content=result)
+    # Just store the raw content without processing
+    uploaded_jd_content = await file.read()
+    
+    # Extract basic info for confirmation only
+    try:
+        pdf_file = io.BytesIO(uploaded_jd_content)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        page_count = len(pdf_reader.pages)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF reading error: {str(e)}")
+    
+    return JSONResponse(content={
+        "message": "Job description uploaded successfully", 
+        "pages": page_count,
+        "filename": file.filename
+    })
 
 @app.post("/upload-cvs")
 async def upload_cvs(files: List[UploadFile] = File(...)):
-    files_content = []
+    global uploaded_cvs_content
+    
+    uploaded_cvs_content = []
+    file_info = []
+    
     for file in files:
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail=f"File {file.filename} must be a PDF")
+        
+        # Store raw PDF content without processing
         content = await file.read()
-        files_content.append((content, file.filename))
+        
+        # Extract basic info for confirmation only
+        try:
+            pdf_file = io.BytesIO(content)
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            page_count = len(pdf_reader.pages)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"PDF reading error: {str(e)}")
+        
+        uploaded_cvs_content.append((content, file.filename))
+        file_info.append({
+            "filename": file.filename,
+            "pages": page_count
+        })
     
-    result = await cv_matcher.process_cvs(files_content)
-    return JSONResponse(content=result)
+    return JSONResponse(content={
+        "message": f"Successfully uploaded {len(files)} CVs",
+        "cv_count": len(files),
+        "files": file_info
+    })
 
 @app.post("/compare-cvs")
 async def compare_cvs():
+    global uploaded_jd_content, uploaded_cvs_content
+    
+    if not uploaded_jd_content:
+        raise HTTPException(status_code=400, detail="Please upload a job description first")
+    
+    if not uploaded_cvs_content:
+        raise HTTPException(status_code=400, detail="Please upload at least one CV first")
+    
+    # Clear previous results first to avoid duplicates
+    cv_matcher.clear_all()
+    
+    # Process JD now (at comparison time)
+    await cv_matcher.process_jd(uploaded_jd_content)
+    
+    # Process CVs now (at comparison time)
+    await cv_matcher.process_cvs(uploaded_cvs_content)
+    
+    # Now compare the processed documents
     result = await cv_matcher.compare_documents()
     return JSONResponse(content=result)
 
 @app.post("/clear-matching")
 async def clear_matching():
+    global uploaded_jd_content, uploaded_cvs_content
+    uploaded_jd_content = None
+    uploaded_cvs_content = []
     cv_matcher.clear_all()
     return JSONResponse(content={"message": "All documents cleared"})
 
