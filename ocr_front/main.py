@@ -171,11 +171,29 @@ async def upload_pdf(req: Request):
             
         if response.status_code != 200:
             raise Exception(response.json().get('detail', 'Upload failed'))
-            
+        
         return Div(
-            Script("document.getElementById('upload-container-pdf').style.display = 'none';"),
+            Alert(
+                AlertTitle("Success", cls="text-white"),
+                AlertDescription("PDF uploaded successfully", cls="text-white"),
+                variant="default",
+                cls="bg-green-400/10 border-green-400/30 text-white mb-6",
+                id="success-alert"
+            ),
             get_information_display(),
-            cls="mx-auto justify-center w-full"
+            Script("""
+                document.getElementById('upload-container-pdf').style.display = 'none';
+                
+                setTimeout(() => {
+                    const alert = document.getElementById('success-alert');
+                    if (alert) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        alert.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 3000);
+            """)
         )
             
     except Exception as e:
@@ -223,12 +241,28 @@ async def clear_pdf(req: Request):
             raise Exception(response.json().get('detail', 'Clear failed'))
         
         return Div(
+            Alert(
+                AlertTitle("Success"),
+                AlertDescription("PDF cleared successfully"),
+                variant="default",
+                cls="bg-green-400/10 border-green-400/30 text-white mb-6",
+                id="success-alert"
+            ),
             get_information_display(),
             Script("""
                 document.getElementById('upload-container-pdf').style.display = 'block';
                 document.getElementById('file-upload-pdf').value = '';
                 document.getElementById('chat-messages').innerHTML = '';
                 document.getElementById('audio-output').innerHTML = '';
+                setTimeout(() => {
+                    const alert = document.getElementById('success-alert');
+                    if (alert) {
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        alert.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                }, 3000);
             """),
             cls="mx-auto justify-center w-full"
         )
@@ -304,7 +338,7 @@ async def upload_jd(req: Request):
                 AlertTitle("Success", cls="text-white"),
                 AlertDescription("Job description analyzed successfully", cls="text-white"),
                 variant="default",
-                cls="bg-green-400/10 border-green-400/30 text-white mt-3 sm:mt-4 md:mt-6",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
                 id="success-alert"
             ),
             Script("""
@@ -372,7 +406,7 @@ async def upload_cvs(req: Request):
                 AlertTitle("Success", cls="text-white"),
                 AlertDescription(f"Successfully uploaded {result['cv_count']} CVs", cls="text-white"),
                 variant="default",
-                cls="bg-green-400/10 border-green-400/30 text-white mt-3 sm:mt-4 md:mt-6",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
                 id="success-alert"
             ),
             Script("""
