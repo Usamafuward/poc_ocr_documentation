@@ -105,7 +105,7 @@ def get_candidate_profile(i, match):
                 Div(
                     Div(
                         H3(f"#{i+1}: {match['cv_name']}", 
-                           cls="text-base sm:text-xl md:text-2xl font-bold text-white max-w-full sm:max-w-xs md:max-w-md"),
+                           cls="text-base sm:truncate sm:text-xl md:text-2xl font-bold text-white max-w-full sm:max-w-xs md:max-w-md"),
                         Lucide("chevron-down", 
                                cls="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-gray-400 transition-transform duration-200 transform hover:text-white cursor-pointer flex-shrink-0"),
                         cls="flex items-center gap-1 sm:gap-2 w-2/3 sm:w-10/12"
