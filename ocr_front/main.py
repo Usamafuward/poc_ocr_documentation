@@ -86,7 +86,7 @@ def get_tabs():
                 Div(
                     get_information_display(),
                     get_rtc_chat_interface(),
-                    cls="flex flex-cols-2 gap-6"
+                    cls="flex flex-col md:flex-row gap-6"
                 ),
                 cls="space-y-6"
             ),
@@ -109,11 +109,11 @@ def get_tabs():
 @rt('/')
 def get():
     return (
-        Title("PDF CV Extractor & Matcher"),
+        Title("CV Extractor & Matcher"),
         Script(f"window.BACKEND_URL = '{os.getenv('BACKEND_URL')}';"),  # Inject environment variable
         Body(
             Section(
-                H1("PDF CV Extractor & Matcher",
+                H1("CV Extractor & Matcher",
                    cls="text-4xl font-bold tracking-tight text-center mb-6 text-white"),
                 cls="container max-w-full mx-auto my-8"
             ),
@@ -304,7 +304,7 @@ async def upload_jd(req: Request):
                 AlertTitle("Success", cls="text-white"),
                 AlertDescription("Job description analyzed successfully", cls="text-white"),
                 variant="default",
-                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-3 sm:mt-4 md:mt-6",
                 id="success-alert"
             ),
             Script("""
@@ -372,7 +372,7 @@ async def upload_cvs(req: Request):
                 AlertTitle("Success", cls="text-white"),
                 AlertDescription(f"Successfully uploaded {result['cv_count']} CVs", cls="text-white"),
                 variant="default",
-                cls="bg-green-400/10 border-green-400/30 text-white mt-6",
+                cls="bg-green-400/10 border-green-400/30 text-white mt-3 sm:mt-4 md:mt-6",
                 id="success-alert"
             ),
             Script("""
