@@ -122,8 +122,109 @@ class CVJDMatcher:
             "analyses": analyses
         }
 
+    # async def compare_documents(self) -> dict:
+    #     """Compare CVs against JD using OpenAI"""
+    #     if not self.current_jd:
+    #         raise HTTPException(status_code=400, detail="Please upload a job description first")
+        
+    #     if not self.current_cvs:
+    #         raise HTTPException(status_code=400, detail="Please upload CVs first")
+        
+    #     # Create a set to track processed CV filenames to avoid duplicates
+    #     processed_filenames = set()
+    #     matches = []
+        
+    #     for cv in self.current_cvs:
+    #         # Skip if we've already processed this filename
+    #         if cv["filename"] in processed_filenames:
+    #             continue
+            
+    #         processed_filenames.add(cv["filename"])
+            
+    #         # Rest of your existing comparison code...
+    #         system_prompt = "You are a professional CV and job description matching assistant."
+    #         user_prompt = f"""Analyze the following job description and CV data.
+    #         Return ONLY valid JSON with this exact example structure, no other text:
+    #         {{
+    #             "match_percentage": exact matching float value 2 decimal places don't give 0.00 or 100.00,
+    #             "matching_skills": Analyze full CV data and give matching skills list ["skill1", "skill2"],
+    #             "missing_skills": Analyze full CV data and give missing skills list ["skill3", "skill4"],
+    #             "experience_match": true,
+    #             "education_match": true,
+    #             "detailed_analysis": "Detailed analysis about CV matching text here"
+    #         }}
+
+    #         Job Description Data:
+    #         {json.dumps(self.current_jd["analysis"])}
+
+    #         CV Data:
+    #         {json.dumps(cv["analysis"])}"""
+            
+    #         try:
+    #             # Call OpenAI API using the new client API (v1.0.0+)
+    #             response = await self.openai_client.chat.completions.create(
+    #                 model="gpt-4o",
+    #                 messages=[
+    #                     {"role": "system", "content": system_prompt},
+    #                     {"role": "user", "content": user_prompt}
+    #                 ],
+    #                 temperature=0.1
+    #             )
+                
+    #             # Extract and parse response
+    #             response_text = response.choices[0].message.content.strip()
+    #             if response_text.startswith("```json"):
+    #                 response_text = response_text[7:-3]  # Remove ```json and ``` if present
+    #             response_text = response_text.strip()
+                
+    #             # Parse and validate JSON
+    #             try:
+    #                 match_analysis = json.loads(response_text)
+    #                 # Ensure all required fields are present
+    #                 required_fields = ["match_percentage", "matching_skills", "missing_skills", 
+    #                                 "experience_match", "education_match", "detailed_analysis"]
+    #                 for field in required_fields:
+    #                     if field not in match_analysis:
+    #                         raise HTTPException(
+    #                             status_code=500,
+    #                             detail=f"Missing required field in matching analysis: {field}"
+    #                         )
+    #             except json.JSONDecodeError:
+    #                 # If JSON parsing fails, create a default response
+    #                 match_analysis = {
+    #                     "match_percentage": 0.0,
+    #                     "matching_skills": [],
+    #                     "missing_skills": ["Unable to parse skills"],
+    #                     "experience_match": False,
+    #                     "education_match": False,
+    #                     "detailed_analysis": "Error analyzing CV: Invalid response format"
+    #                 }
+                    
+    #         except Exception as e:
+    #             raise HTTPException(status_code=500, detail=f"OpenAI matching error: {str(e)}")
+            
+    #         match_result = MatchResult(
+    #             cv_name=cv["filename"],
+    #             match_percentage=match_analysis["match_percentage"],
+    #             matching_skills=match_analysis["matching_skills"],
+    #             missing_skills=match_analysis["missing_skills"],
+    #             experience_match=match_analysis["experience_match"],
+    #             education_match=match_analysis["education_match"],
+    #             overall_summary=f"Match: {match_analysis['match_percentage']}%",
+    #             detailed_analysis=match_analysis["detailed_analysis"]
+    #         )
+    #         matches.append(match_result)
+        
+    #     # Sort matches by match percentage in descending order
+    #     matches.sort(key=lambda x: x.match_percentage, reverse=True)
+        
+    #     return {
+    #         "matches": [match.dict() for match in matches],
+    #         "total_candidates": len(matches)
+    #     }
+    
     async def compare_documents(self) -> dict:
-        """Compare CVs against JD using OpenAI"""
+        """Compare CVs against JD using Gemini"""
         if not self.current_jd:
             raise HTTPException(status_code=400, detail="Please upload a job description first")
         
@@ -141,10 +242,9 @@ class CVJDMatcher:
             
             processed_filenames.add(cv["filename"])
             
-            # Rest of your existing comparison code...
-            system_prompt = "You are a professional CV and job description matching assistant."
-            user_prompt = f"""Analyze the following job description and CV data.
-            Return ONLY valid JSON with this exact example structure, no other text:
+            prompt = f"""You are a professional CV and job description matching assistant.
+            Analyze the following job description and CV data.
+            Return ONLY valid JSON with this exact structure, no other text:
             {{
                 "match_percentage": exact matching float value 2 decimal places don't give 0.00 or 100.00,
                 "matching_skills": Analyze full CV data and give matching skills list ["skill1", "skill2"],
@@ -161,18 +261,15 @@ class CVJDMatcher:
             {json.dumps(cv["analysis"])}"""
             
             try:
-                # Call OpenAI API using the new client API (v1.0.0+)
-                response = await self.openai_client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    temperature=0.1
+                response = await self.model.generate_content_async(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.1
+                    )
                 )
                 
-                # Extract and parse response
-                response_text = response.choices[0].message.content.strip()
+                # Clean the response text to ensure it's valid JSON
+                response_text = response.text.strip()
                 if response_text.startswith("```json"):
                     response_text = response_text[7:-3]  # Remove ```json and ``` if present
                 response_text = response_text.strip()
@@ -201,7 +298,7 @@ class CVJDMatcher:
                     }
                     
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"OpenAI matching error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Gemini matching error: {str(e)}")
             
             match_result = MatchResult(
                 cv_name=cv["filename"],
