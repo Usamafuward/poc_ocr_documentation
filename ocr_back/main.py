@@ -16,15 +16,10 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = [
-    "https://poc-cv-chat.kainovation.com",
-    "http://localhost:8000",
-]
-
 # CORS middleware to allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
