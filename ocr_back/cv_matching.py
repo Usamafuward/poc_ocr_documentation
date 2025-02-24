@@ -20,7 +20,7 @@ class MatchResult(BaseModel):
 class CVJDMatcher:
     def __init__(self, gemini_api_key: str, openai_api_key: str):
         genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         self.openai_client = AsyncOpenAI(api_key=openai_api_key)
         self.current_jd = None
         self.current_cvs = []
