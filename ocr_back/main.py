@@ -223,6 +223,8 @@ async def upload_jd(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF reading error: {str(e)}")
     
+    print(f"Uploaded JD: {file.filename} ({page_count} pages)")
+    
     return JSONResponse(content={
         "message": "Job description uploaded successfully", 
         "pages": page_count,
